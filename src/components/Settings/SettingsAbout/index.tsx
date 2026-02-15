@@ -1,19 +1,17 @@
-import { InformationCircleIcon } from '@heroicons/react/solid';
-import React from 'react';
-import { defineMessages, useIntl } from 'react-intl';
-import useSWR from 'swr';
-import {
+import Alert from '@app/components/Common/Alert';
+import Badge from '@app/components/Common/Badge';
+import List from '@app/components/Common/List';
+import LoadingSpinner from '@app/components/Common/LoadingSpinner';
+import PageTitle from '@app/components/Common/PageTitle';
+import Releases from '@app/components/Settings/SettingsAbout/Releases';
+import globalMessages from '@app/i18n/globalMessages';
+import Error from '@app/pages/_error';
+import type {
   SettingsAboutResponse,
   StatusResponse,
-} from '../../../../server/interfaces/api/settingsInterfaces';
-import globalMessages from '../../../i18n/globalMessages';
-import Error from '../../../pages/_error';
-import Alert from '../../Common/Alert';
-import Badge from '../../Common/Badge';
-import List from '../../Common/List';
-import LoadingSpinner from '../../Common/LoadingSpinner';
-import PageTitle from '../../Common/PageTitle';
-import Releases from './Releases';
+} from '@server/interfaces/api/settingsInterfaces';
+import { defineMessages, useIntl } from 'react-intl';
+import useSWR from 'swr';
 
 const messages = defineMessages({
   about: 'About',
@@ -24,19 +22,22 @@ const messages = defineMessages({
   gettingsupport: 'Getting Support',
   githubdiscussions: 'GitHub Discussions',
   timezone: 'Time Zone',
+  appDataPath: 'Data Directory',
   supportoverseerr: 'Support Overseerr',
   helppaycoffee: 'Help Pay for Coffee',
   documentation: 'Documentation',
   preferredmethod: 'Preferred',
   outofdate: 'Out of Date',
   uptodate: 'Up to Date',
-  betawarning:
-    'This is BETA software. Features may be broken and/or unstable. Please report any issues on GitHub!',
+  seerrmigration:
+    'Overseerr is being superseded by {seerrLink}. This project will no longer receive new features or major updates. We recommend migrating to Seerr for continued support and development.',
+  seerrmigrationTitle: 'Overseerr → Seerr',
+  migrationguide: 'Migration Guide',
   runningDevelop:
     'You are running the <code>develop</code> branch of Overseerr, which is only recommended for those contributing to development or assisting with bleeding-edge testing.',
 });
 
-const SettingsAbout: React.FC = () => {
+const SettingsAbout = () => {
   const intl = useIntl();
   const { data, error } = useSWR<SettingsAboutResponse>(
     '/api/v1/settings/about'
@@ -60,36 +61,43 @@ const SettingsAbout: React.FC = () => {
           intl.formatMessage(globalMessages.settings),
         ]}
       />
-      <div className="p-4 mt-6 bg-indigo-700 rounded-md">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <InformationCircleIcon className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 ml-3 md:flex md:justify-between">
-            <p className="text-sm leading-5 text-white">
-              {intl.formatMessage(messages.betawarning)}
-            </p>
-            <p className="mt-3 text-sm leading-5 md:mt-0 md:ml-6">
+      <Alert
+        title={intl.formatMessage(messages.seerrmigrationTitle)}
+        type="warning"
+      >
+        <p>
+          {intl.formatMessage(messages.seerrmigration, {
+            seerrLink: (
               <a
-                href="http://github.com/sct/overseerr"
-                className="font-medium text-indigo-100 transition duration-150 ease-in-out whitespace-nowrap hover:text-white"
+                href="https://github.com/seerr-team/seerr"
                 target="_blank"
                 rel="noreferrer"
+                className="font-bold text-yellow-100 transition duration-150 ease-in-out hover:text-white hover:underline"
               >
-                GitHub &rarr;
+                Seerr
               </a>
-            </p>
-          </div>
-        </div>
-      </div>
+            ),
+          })}
+        </p>
+        <p className="mt-2">
+          <a
+            href="https://docs.seerr.dev/migration-guide"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-yellow-100 transition duration-150 ease-in-out hover:text-white hover:underline"
+          >
+            {intl.formatMessage(messages.migrationguide)} &rarr;
+          </a>
+        </p>
+      </Alert>
       <div className="section">
         <List title={intl.formatMessage(messages.overseerrinformation)}>
           {data.version.startsWith('develop-') && (
             <Alert
               title={intl.formatMessage(messages.runningDevelop, {
-                code: function code(msg) {
-                  return <code className="bg-opacity-50">{msg}</code>;
-                },
+                code: (msg: React.ReactNode) => (
+                  <code className="bg-opacity-50">{msg}</code>
+                ),
               })}
             />
           )}
@@ -113,7 +121,7 @@ const SettingsAbout: React.FC = () => {
                 >
                   <Badge
                     badgeType="warning"
-                    className="ml-2 transition !cursor-pointer hover:bg-yellow-400"
+                    className="ml-2 !cursor-pointer transition hover:bg-yellow-400"
                   >
                     {intl.formatMessage(messages.outofdate)}
                   </Badge>
@@ -130,7 +138,7 @@ const SettingsAbout: React.FC = () => {
                 >
                   <Badge
                     badgeType="success"
-                    className="ml-2 transition !cursor-pointer hover:bg-green-400"
+                    className="ml-2 !cursor-pointer transition hover:bg-green-400"
                   >
                     {intl.formatMessage(messages.uptodate)}
                   </Badge>
@@ -142,6 +150,9 @@ const SettingsAbout: React.FC = () => {
           </List.Item>
           <List.Item title={intl.formatMessage(messages.totalrequests)}>
             {intl.formatNumber(data.totalRequests)}
+          </List.Item>
+          <List.Item title={intl.formatMessage(messages.appDataPath)}>
+            <code>{data.appDataPath}</code>
           </List.Item>
           {data.tz && (
             <List.Item title={intl.formatMessage(messages.timezone)}>

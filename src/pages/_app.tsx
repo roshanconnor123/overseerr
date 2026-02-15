@@ -1,28 +1,36 @@
+import Layout from '@app/components/Layout';
+import LoadingBar from '@app/components/LoadingBar';
+import PWAHeader from '@app/components/PWAHeader';
+import ServiceWorkerSetup from '@app/components/ServiceWorkerSetup';
+import StatusChecker from '@app/components/StatusChecker';
+import Toast from '@app/components/Toast';
+import ToastContainer from '@app/components/ToastContainer';
+import { InteractionProvider } from '@app/context/InteractionContext';
+import type { AvailableLocale } from '@app/context/LanguageContext';
+import { LanguageContext } from '@app/context/LanguageContext';
+import { SettingsProvider } from '@app/context/SettingsContext';
+import { UserContext } from '@app/context/UserContext';
+import type { User } from '@app/hooks/useUser';
+import { Permission, useUser } from '@app/hooks/useUser';
+import '@app/styles/globals.css';
+import { polyfillIntl } from '@app/utils/polyfillIntl';
+import type { PublicSettingsResponse } from '@server/interfaces/api/settingsInterfaces';
 import axios from 'axios';
-import App, { AppInitialProps, AppProps } from 'next/app';
+import type { AppInitialProps, AppProps } from 'next/app';
+import App from 'next/app';
 import Head from 'next/head';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { IntlProvider } from 'react-intl';
 import { ToastProvider } from 'react-toast-notifications';
 import { SWRConfig } from 'swr';
-import { PublicSettingsResponse } from '../../server/interfaces/api/settingsInterfaces';
-import Layout from '../components/Layout';
-import LoadingBar from '../components/LoadingBar';
-import PWAHeader from '../components/PWAHeader';
-import ServiceWorkerSetup from '../components/ServiceWorkerSetup';
-import StatusChecker from '../components/StatusChacker';
-import Toast from '../components/Toast';
-import ToastContainer from '../components/ToastContainer';
-import { InteractionProvider } from '../context/InteractionContext';
-import { AvailableLocale, LanguageContext } from '../context/LanguageContext';
-import { SettingsProvider } from '../context/SettingsContext';
-import { UserContext } from '../context/UserContext';
-import { User } from '../hooks/useUser';
-import '../styles/globals.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadLocaleData = (locale: AvailableLocale): Promise<any> => {
   switch (locale) {
+    case 'ar':
+      return import('../i18n/locale/ar.json');
+    case 'bg':
+      return import('../i18n/locale/bg.json');
     case 'ca':
       return import('../i18n/locale/ca.json');
     case 'cs':
@@ -35,14 +43,26 @@ const loadLocaleData = (locale: AvailableLocale): Promise<any> => {
       return import('../i18n/locale/el.json');
     case 'es':
       return import('../i18n/locale/es.json');
+    case 'fi':
+      return import('../i18n/locale/fi.json');
     case 'fr':
       return import('../i18n/locale/fr.json');
+    case 'he':
+      return import('../i18n/locale/he.json');
+    case 'hi':
+      return import('../i18n/locale/hi.json');
+    case 'hr':
+      return import('../i18n/locale/hr.json');
+    case 'hu':
+      return import('../i18n/locale/hu.json');
     case 'it':
       return import('../i18n/locale/it.json');
     case 'ja':
       return import('../i18n/locale/ja.json');
-    case 'hu':
-      return import('../i18n/locale/hu.json');
+    case 'ko':
+      return import('../i18n/locale/ko.json');
+    case 'lt':
+      return import('../i18n/locale/lt.json');
     case 'nb-NO':
       return import('../i18n/locale/nb_NO.json');
     case 'nl':
@@ -53,12 +73,18 @@ const loadLocaleData = (locale: AvailableLocale): Promise<any> => {
       return import('../i18n/locale/pt_BR.json');
     case 'pt-PT':
       return import('../i18n/locale/pt_PT.json');
+    case 'ro':
+      return import('../i18n/locale/ro.json');
     case 'ru':
       return import('../i18n/locale/ru.json');
+    case 'sq':
+      return import('../i18n/locale/sq.json');
     case 'sr':
       return import('../i18n/locale/sr.json');
     case 'sv':
       return import('../i18n/locale/sv.json');
+    case 'uk':
+      return import('../i18n/locale/uk.json');
     case 'zh-CN':
       return import('../i18n/locale/zh_Hans.json');
     case 'zh-TW':
@@ -102,6 +128,49 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
     loadLocaleData(currentLocale).then(setMessages);
   }, [currentLocale]);
 
+  const { hasPermission } = useUser();
+
+  useEffect(() => {
+    const requestsCount = async () => {
+      const response = await axios.get('/api/v1/request/count');
+      return response.data;
+    };
+
+    // Cast navigator to a type that includes setAppBadge and clearAppBadge
+    // to avoid TypeScript errors while ensuring these methods exist before calling them.
+    const newNavigator = navigator as unknown as {
+      setAppBadge?: (count: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
+
+    const handleBadgeUpdate = () => {
+      if ('setAppBadge' in newNavigator) {
+        if (
+          !router.pathname.match(/(login|setup|resetpassword)/) &&
+          hasPermission(Permission.ADMIN)
+        ) {
+          requestsCount().then((data) => {
+            if (data.pending > 0) {
+              newNavigator.setAppBadge?.(data.pending);
+            } else {
+              newNavigator.clearAppBadge?.();
+            }
+          });
+        } else {
+          newNavigator.clearAppBadge?.();
+        }
+      }
+    };
+
+    handleBadgeUpdate();
+
+    window.addEventListener('focus', handleBadgeUpdate);
+
+    return () => {
+      window.removeEventListener('focus', handleBadgeUpdate);
+    };
+  }, [hasPermission, router.pathname]);
+
   if (router.pathname.match(/(login|setup|resetpassword)/)) {
     component = <Component {...pageProps} />;
   } else {
@@ -116,6 +185,9 @@ const CoreApp: Omit<NextAppComponentType, 'origGetInitialProps'> = ({
     <SWRConfig
       value={{
         fetcher: (url) => axios.get(url).then((res) => res.data),
+        fallback: {
+          '/api/v1/auth/me': user,
+        },
       }}
     >
       <LanguageContext.Provider value={{ locale: currentLocale, setLocale }}>
@@ -175,7 +247,9 @@ CoreApp.getInitialProps = async (initialProps) => {
   if (ctx.res) {
     // Check if app is initialized and redirect if necessary
     const response = await axios.get<PublicSettingsResponse>(
-      `http://localhost:${process.env.PORT || 5055}/api/v1/settings/public`
+      `http://${process.env.HOST || 'localhost'}:${
+        process.env.PORT || 5055
+      }/api/v1/settings/public`
     );
 
     currentSettings = response.data;
@@ -193,8 +267,15 @@ CoreApp.getInitialProps = async (initialProps) => {
       try {
         // Attempt to get the user by running a request to the local api
         const response = await axios.get<User>(
-          `http://localhost:${process.env.PORT || 5055}/api/v1/auth/me`,
-          { headers: ctx.req ? { cookie: ctx.req.headers.cookie } : undefined }
+          `http://${process.env.HOST || 'localhost'}:${
+            process.env.PORT || 5055
+          }/api/v1/auth/me`,
+          {
+            headers:
+              ctx.req && ctx.req.headers.cookie
+                ? { cookie: ctx.req.headers.cookie }
+                : undefined,
+          }
         );
         user = response.data;
 
@@ -228,6 +309,7 @@ CoreApp.getInitialProps = async (initialProps) => {
     : currentSettings.locale;
 
   const messages = await loadLocaleData(locale as AvailableLocale);
+  await polyfillIntl(locale);
 
   return { ...appInitialProps, user, messages, locale, currentSettings };
 };

@@ -2,6 +2,8 @@ export enum MediaRequestStatus {
   PENDING = 1,
   APPROVED,
   DECLINED,
+  FAILED,
+  COMPLETED,
 }
 
 export enum MediaType {
@@ -15,4 +17,5 @@ export enum MediaStatus {
   PROCESSING,
   PARTIALLY_AVAILABLE,
   AVAILABLE,
+  DELETED,
 }

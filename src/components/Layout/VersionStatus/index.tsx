@@ -1,28 +1,19 @@
-import {
-  ArrowCircleUpIcon,
-  BeakerIcon,
-  CodeIcon,
-  ServerIcon,
-} from '@heroicons/react/outline';
+import { ArrowUpCircleIcon } from '@heroicons/react/24/outline';
+import type { StatusResponse } from '@server/interfaces/api/settingsInterfaces';
 import Link from 'next/link';
-import React from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import useSWR from 'swr';
-import { StatusResponse } from '../../../../server/interfaces/api/settingsInterfaces';
 
 const messages = defineMessages({
-  streamdevelop: 'Overseerr Develop',
-  streamstable: 'Overseerr Stable',
-  outofdate: 'Out of Date',
-  commitsbehind:
-    '{commitsBehind} {commitsBehind, plural, one {commit} other {commits}} behind',
+  updatetoseerr: 'Update to Seerr',
+  migrationavailable: 'Migration Available',
 });
 
 interface VersionStatusProps {
   onClick?: () => void;
 }
 
-const VersionStatus: React.FC<VersionStatusProps> = ({ onClick }) => {
+const VersionStatus = ({ onClick }: VersionStatusProps) => {
   const intl = useIntl();
   const { data } = useSWR<StatusResponse>('/api/v1/status', {
     refreshInterval: 60 * 1000,
@@ -31,13 +22,6 @@ const VersionStatus: React.FC<VersionStatusProps> = ({ onClick }) => {
   if (!data) {
     return null;
   }
-
-  const versionStream =
-    data.commitTag === 'local'
-      ? 'Keep it up! 👍'
-      : data.version.startsWith('develop-')
-      ? intl.formatMessage(messages.streamdevelop)
-      : intl.formatMessage(messages.streamstable);
 
   return (
     <Link href="/settings/about">
@@ -50,38 +34,17 @@ const VersionStatus: React.FC<VersionStatusProps> = ({ onClick }) => {
         }}
         role="button"
         tabIndex={0}
-        className={`flex items-center p-2 mx-2 text-xs transition duration-300 rounded-lg ring-1 ring-gray-700 ${
-          data.updateAvailable
-            ? 'bg-yellow-500 text-white hover:bg-yellow-400'
-            : 'bg-gray-900 text-gray-300 hover:bg-gray-800'
-        }`}
+        className="mx-2 flex items-center rounded-lg bg-yellow-500 p-2 text-xs text-white ring-1 ring-gray-700 transition duration-300 hover:bg-yellow-400"
       >
-        {data.commitTag === 'local' ? (
-          <CodeIcon className="w-6 h-6" />
-        ) : data.version.startsWith('develop-') ? (
-          <BeakerIcon className="w-6 h-6" />
-        ) : (
-          <ServerIcon className="w-6 h-6" />
-        )}
-        <div className="flex flex-col flex-1 min-w-0 px-2 truncate last:pr-0">
-          <span className="font-bold">{versionStream}</span>
+        <ArrowUpCircleIcon className="h-6 w-6" />
+        <div className="flex min-w-0 flex-1 flex-col truncate px-2 last:pr-0">
+          <span className="font-bold">
+            {intl.formatMessage(messages.updatetoseerr)}
+          </span>
           <span className="truncate">
-            {data.commitTag === 'local' ? (
-              '(⌐■_■)'
-            ) : data.commitsBehind > 0 ? (
-              intl.formatMessage(messages.commitsbehind, {
-                commitsBehind: data.commitsBehind,
-              })
-            ) : data.commitsBehind === -1 ? (
-              intl.formatMessage(messages.outofdate)
-            ) : (
-              <code className="p-0 bg-transparent">
-                {data.version.replace('develop-', '')}
-              </code>
-            )}
+            {intl.formatMessage(messages.migrationavailable)}
           </span>
         </div>
-        {data.updateAvailable && <ArrowCircleUpIcon className="w-6 h-6" />}
       </a>
     </Link>
   );

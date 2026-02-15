@@ -1,16 +1,16 @@
-import { BeakerIcon, SaveIcon } from '@heroicons/react/outline';
+import Button from '@app/components/Common/Button';
+import LoadingSpinner from '@app/components/Common/LoadingSpinner';
+import SensitiveInput from '@app/components/Common/SensitiveInput';
+import SettingsBadge from '@app/components/Settings/SettingsBadge';
+import globalMessages from '@app/i18n/globalMessages';
+import { ArrowDownOnSquareIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
 import useSWR, { mutate } from 'swr';
 import * as Yup from 'yup';
-import globalMessages from '../../../i18n/globalMessages';
-import Badge from '../../Common/Badge';
-import Button from '../../Common/Button';
-import LoadingSpinner from '../../Common/LoadingSpinner';
-import SensitiveInput from '../../Common/SensitiveInput';
 
 const messages = defineMessages({
   validationSmtpHostRequired: 'You must provide a valid hostname or IP address',
@@ -46,7 +46,7 @@ const messages = defineMessages({
   validationPgpPassword: 'You must provide a PGP password',
 });
 
-export function OpenPgpLink(msg: string): JSX.Element {
+export function OpenPgpLink(msg: React.ReactNode) {
   return (
     <a href="https://www.openpgp.org/" target="_blank" rel="noreferrer">
       {msg}
@@ -54,13 +54,15 @@ export function OpenPgpLink(msg: string): JSX.Element {
   );
 }
 
-const NotificationsEmail: React.FC = () => {
+const NotificationsEmail = () => {
   const intl = useIntl();
   const { addToast, removeToast } = useToasts();
   const [isTesting, setIsTesting] = useState(false);
-  const { data, error, revalidate } = useSWR(
-    '/api/v1/settings/notifications/email'
-  );
+  const {
+    data,
+    error,
+    mutate: revalidate,
+  } = useSWR('/api/v1/settings/notifications/email');
 
   const NotificationsEmailSchema = Yup.object().shape(
     {
@@ -101,7 +103,7 @@ const NotificationsEmail: React.FC = () => {
           otherwise: Yup.string().nullable(),
         })
         .matches(
-          /-----BEGIN PGP PRIVATE KEY BLOCK-----.+-----END PGP PRIVATE KEY BLOCK-----/s,
+          /-----BEGIN PGP PRIVATE KEY BLOCK-----.+-----END PGP PRIVATE KEY BLOCK-----/,
           intl.formatMessage(messages.validationPgpPrivateKey)
         ),
       pgpPassword: Yup.string().when('pgpPrivateKey', {
@@ -202,6 +204,7 @@ const NotificationsEmail: React.FC = () => {
                 requireTls: values.encryption === 'opportunistic',
                 authUser: values.authUser,
                 authPass: values.authPass,
+                allowSelfSigned: values.allowSelfSigned,
                 senderName: values.senderName,
                 pgpPrivateKey: values.pgpPrivateKey,
                 pgpPassword: values.pgpPassword,
@@ -235,7 +238,7 @@ const NotificationsEmail: React.FC = () => {
                 {intl.formatMessage(messages.agentenabled)}
                 <span className="label-required">*</span>
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <Field type="checkbox" id="enabled" name="enabled" />
               </div>
             </div>
@@ -243,7 +246,7 @@ const NotificationsEmail: React.FC = () => {
               <label htmlFor="senderName" className="text-label">
                 {intl.formatMessage(messages.senderName)}
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
                   <Field id="senderName" name="senderName" type="text" />
                 </div>
@@ -254,18 +257,24 @@ const NotificationsEmail: React.FC = () => {
                 {intl.formatMessage(messages.emailsender)}
                 <span className="label-required">*</span>
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
                   <Field
                     id="emailFrom"
                     name="emailFrom"
                     type="text"
                     inputMode="email"
+                    autoComplete="off"
+                    data-1pignore="true"
+                    data-lpignore="true"
+                    data-bwignore="true"
                   />
                 </div>
-                {errors.emailFrom && touched.emailFrom && (
-                  <div className="error">{errors.emailFrom}</div>
-                )}
+                {errors.emailFrom &&
+                  touched.emailFrom &&
+                  typeof errors.emailFrom === 'string' && (
+                    <div className="error">{errors.emailFrom}</div>
+                  )}
               </div>
             </div>
             <div className="form-row">
@@ -273,18 +282,24 @@ const NotificationsEmail: React.FC = () => {
                 {intl.formatMessage(messages.smtpHost)}
                 <span className="label-required">*</span>
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
                   <Field
                     id="smtpHost"
                     name="smtpHost"
                     type="text"
                     inputMode="url"
+                    autoComplete="off"
+                    data-1pignore="true"
+                    data-lpignore="true"
+                    data-bwignore="true"
                   />
                 </div>
-                {errors.smtpHost && touched.smtpHost && (
-                  <div className="error">{errors.smtpHost}</div>
-                )}
+                {errors.smtpHost &&
+                  touched.smtpHost &&
+                  typeof errors.smtpHost === 'string' && (
+                    <div className="error">{errors.smtpHost}</div>
+                  )}
               </div>
             </div>
             <div className="form-row">
@@ -292,17 +307,23 @@ const NotificationsEmail: React.FC = () => {
                 {intl.formatMessage(messages.smtpPort)}
                 <span className="label-required">*</span>
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <Field
                   id="smtpPort"
                   name="smtpPort"
                   type="text"
                   inputMode="numeric"
                   className="short"
+                  autoComplete="off"
+                  data-1pignore="true"
+                  data-lpignore="true"
+                  data-bwignore="true"
                 />
-                {errors.smtpPort && touched.smtpPort && (
-                  <div className="error">{errors.smtpPort}</div>
-                )}
+                {errors.smtpPort &&
+                  touched.smtpPort &&
+                  typeof errors.smtpPort === 'string' && (
+                    <div className="error">{errors.smtpPort}</div>
+                  )}
               </div>
             </div>
             <div className="form-row">
@@ -313,7 +334,7 @@ const NotificationsEmail: React.FC = () => {
                   {intl.formatMessage(messages.encryptionTip)}
                 </span>
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
                   <Field as="select" id="encryption" name="encryption">
                     <option value="none">
@@ -336,7 +357,7 @@ const NotificationsEmail: React.FC = () => {
               <label htmlFor="allowSelfSigned" className="checkbox-label">
                 {intl.formatMessage(messages.allowselfsigned)}
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <Field
                   type="checkbox"
                   id="allowSelfSigned"
@@ -348,9 +369,17 @@ const NotificationsEmail: React.FC = () => {
               <label htmlFor="authUser" className="text-label">
                 {intl.formatMessage(messages.authUser)}
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
-                  <Field id="authUser" name="authUser" type="text" />
+                  <Field
+                    id="authUser"
+                    name="authUser"
+                    type="text"
+                    autoComplete="off"
+                    data-1pignore="true"
+                    data-lpignore="true"
+                    data-bwignore="true"
+                  />
                 </div>
               </div>
             </div>
@@ -358,14 +387,9 @@ const NotificationsEmail: React.FC = () => {
               <label htmlFor="authPass" className="text-label">
                 {intl.formatMessage(messages.authPass)}
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
-                  <SensitiveInput
-                    as="field"
-                    id="authPass"
-                    name="authPass"
-                    autoComplete="one-time-code"
-                  />
+                  <SensitiveInput as="field" id="authPass" name="authPass" />
                 </div>
               </div>
             </div>
@@ -374,16 +398,14 @@ const NotificationsEmail: React.FC = () => {
                 <span className="mr-2">
                   {intl.formatMessage(messages.pgpPrivateKey)}
                 </span>
-                <Badge badgeType="danger">
-                  {intl.formatMessage(globalMessages.advanced)}
-                </Badge>
+                <SettingsBadge badgeType="advanced" />
                 <span className="label-tip">
                   {intl.formatMessage(messages.pgpPrivateKeyTip, {
                     OpenPgpLink: OpenPgpLink,
                   })}
                 </span>
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
                   <SensitiveInput
                     as="field"
@@ -392,11 +414,17 @@ const NotificationsEmail: React.FC = () => {
                     type="textarea"
                     rows="10"
                     className="font-mono text-xs"
+                    autoComplete="off"
+                    data-1pignore="true"
+                    data-lpignore="true"
+                    data-bwignore="true"
                   />
                 </div>
-                {errors.pgpPrivateKey && touched.pgpPrivateKey && (
-                  <div className="error">{errors.pgpPrivateKey}</div>
-                )}
+                {errors.pgpPrivateKey &&
+                  touched.pgpPrivateKey &&
+                  typeof errors.pgpPrivateKey === 'string' && (
+                    <div className="error">{errors.pgpPrivateKey}</div>
+                  )}
               </div>
             </div>
             <div className="form-row">
@@ -404,32 +432,35 @@ const NotificationsEmail: React.FC = () => {
                 <span className="mr-2">
                   {intl.formatMessage(messages.pgpPassword)}
                 </span>
-                <Badge badgeType="danger">
-                  {intl.formatMessage(globalMessages.advanced)}
-                </Badge>
+                <SettingsBadge badgeType="advanced" />
                 <span className="label-tip">
                   {intl.formatMessage(messages.pgpPasswordTip, {
                     OpenPgpLink: OpenPgpLink,
                   })}
                 </span>
               </label>
-              <div className="form-input">
+              <div className="form-input-area">
                 <div className="form-input-field">
                   <SensitiveInput
                     as="field"
                     id="pgpPassword"
                     name="pgpPassword"
-                    autoComplete="one-time-code"
+                    autoComplete="off"
+                    data-1pignore="true"
+                    data-lpignore="true"
+                    data-bwignore="true"
                   />
                 </div>
-                {errors.pgpPassword && touched.pgpPassword && (
-                  <div className="error">{errors.pgpPassword}</div>
-                )}
+                {errors.pgpPassword &&
+                  touched.pgpPassword &&
+                  typeof errors.pgpPassword === 'string' && (
+                    <div className="error">{errors.pgpPassword}</div>
+                  )}
               </div>
             </div>
             <div className="actions">
               <div className="flex justify-end">
-                <span className="inline-flex ml-3 rounded-md shadow-sm">
+                <span className="ml-3 inline-flex rounded-md shadow-sm">
                   <Button
                     buttonType="warning"
                     disabled={isSubmitting || !isValid || isTesting}
@@ -446,13 +477,13 @@ const NotificationsEmail: React.FC = () => {
                     </span>
                   </Button>
                 </span>
-                <span className="inline-flex ml-3 rounded-md shadow-sm">
+                <span className="ml-3 inline-flex rounded-md shadow-sm">
                   <Button
                     buttonType="primary"
                     type="submit"
                     disabled={isSubmitting || !isValid || isTesting}
                   >
-                    <SaveIcon />
+                    <ArrowDownOnSquareIcon />
                     <span>
                       {isSubmitting
                         ? intl.formatMessage(globalMessages.saving)
